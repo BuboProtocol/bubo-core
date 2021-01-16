@@ -1,0 +1,27 @@
+{
+  "name": "bubo-farms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.3.0",
+    "@openzeppelin/test-helpers": "0.5.6",
+    "@truffle/hdwallet-provider": "^1.2.1",
+    "dotenv": "^8.2.0",
+    "truffle-plugin-verify": "^0.5.4"
+  },
+  "devDependencies": {
+    "bignumber.js": "^9.0.1",
+    "mocha": "^8.2.1",
+    "truffle-flattener": "^1.5.0"
+  }
+}
