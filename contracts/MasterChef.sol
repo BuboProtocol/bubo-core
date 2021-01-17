@@ -9,6 +9,8 @@ import '@pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol';
 import "./BuboToken.sol";
 import "./GBTToken.sol";
 import "./interfaces/IMigratorChef.sol";
+import "./interfaces/IMembers.sol";
+
 
 
 // MasterChef is the master of Bubo. He can make Bubo and he is a fair guy.
@@ -51,6 +53,8 @@ contract MasterChef is Ownable {
     BuboToken public bubo;
     // The GBT TOKEN!
     GBTToken public gbt;
+    // Members
+    IMembers public member;
     // Dev address.
     address public devaddr;
     // BUBO tokens created per block.
@@ -68,20 +72,25 @@ contract MasterChef is Ownable {
     uint256 public totalAllocPoint = 0;
     // The block number when BUBO mining starts.
     uint256 public startBlock;
+    // Percentage of referrals
+    uint256[3] public refPercent = [0, 0, 0];
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event Referrals(address indexed user, address indexed ref, uint256 indexed pid, uint256 amount);
 
     constructor(
         BuboToken _bubo,
         GBTToken _gbt,
+        IMembers _member,
         address _devaddr,
         uint256 _buboPerBlock,
         uint256 _startBlock
     ) public {
         bubo = _bubo;
         gbt = _gbt;
+        member = _member;
         devaddr = _devaddr;
         buboPerBlock = _buboPerBlock;
         startBlock = _startBlock;
@@ -98,12 +107,38 @@ contract MasterChef is Ownable {
 
     }
 
+    function setPercent(uint256 r_1, uint256 r_2, uint256 r_3) external onlyOwner {
+        refPercent[0] = r_1;
+        refPercent[1] = r_2;
+        refPercent[2] = r_3;
+    }  
+
     function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
     }
 
+    function setBuboPerBlock(uint256 _buboPerBlock) external onlyOwner {
+        buboPerBlock = _buboPerBlock;
+    } 
+
     function poolLength() external view returns (uint256) {
         return poolInfo.length;
+    }
+
+    // Creation of BUBOs for referrals
+    function referrals(address _user, uint256 _pid, uint256 _amount) public {
+        address[] memory refTree = member.getParentTree(_user, 3);
+        for (uint256 i = 0; i < 3; i++) {
+            if (refTree[i] != address(0) && refPercent[i] > 0 && _amount > 0) {
+                uint256 refAmount = _amount.mul(refPercent[i]).div(100 ether);
+                if(refAmount > 0){
+                    bubo.mint(refTree[i], refAmount);
+                    emit Referrals(_user, refTree[i], _pid, refAmount);
+                }
+            } else {
+                break;
+            }
+        }
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
@@ -225,6 +260,7 @@ contract MasterChef is Ownable {
             uint256 pending = user.amount.mul(pool.accBuboPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
                 safeBuboTransfer(msg.sender, pending);
+                referrals(msg.sender, _pid, pending);
             }
         }
         if (_amount > 0) {
@@ -247,6 +283,7 @@ contract MasterChef is Ownable {
         uint256 pending = user.amount.mul(pool.accBuboPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
             safeBuboTransfer(msg.sender, pending);
+            referrals(msg.sender, _pid, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
@@ -265,6 +302,7 @@ contract MasterChef is Ownable {
             uint256 pending = user.amount.mul(pool.accBuboPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
                 safeBuboTransfer(msg.sender, pending);
+                referrals(msg.sender, 0, pending);
             }
         }
         if(_amount > 0) {
@@ -286,6 +324,7 @@ contract MasterChef is Ownable {
         uint256 pending = user.amount.mul(pool.accBuboPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
             safeBuboTransfer(msg.sender, pending);
+            referrals(msg.sender, 0, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
