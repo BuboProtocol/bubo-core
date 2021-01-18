@@ -6,6 +6,8 @@ interface IMembers {
 
     function isMember(address _member) external view returns (bool);
 
+    function membersList(uint256 _id) external view returns (address);
+
     function getParentTree(address _member, uint256 _deep)
         external
         view
