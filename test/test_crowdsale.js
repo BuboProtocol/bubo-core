@@ -95,8 +95,9 @@ contract('CrowdSale', ([owner]) => {
     })  
 
     it('Change owner Token', async () => {
+        const masterchef = await MasterChef.deployed()
         const token = await Token.deployed()
-        await token.transferOwnership(MasterChef.address)
+        await token.transferOwnership(masterchef.address)
         const ownerNew = await token.owner()
         assert(ownerNew == MasterChef.address)
     })
