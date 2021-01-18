@@ -61,6 +61,8 @@ contract MasterChef is Ownable {
     address public dappaddr;
     // Crowdsale address.
     address public crowdsaleddr;
+    // Lottery address.
+    address public lotteryaddr;
     // BUBO tokens created per block.
     uint256 public buboPerBlock;
     // Bonus muliplier for early bubo makers.
@@ -393,6 +395,15 @@ contract MasterChef is Ownable {
 
     function buyInCrowdsale(address _user, uint256 _amount) public {
         require(msg.sender == crowdsaleddr, "crowdsale: wut?");
+        bubo.mint(_user, _amount);
+    }
+
+    function lottery(address _lotteryaddr) public onlyOwner {
+        lotteryaddr = _lotteryaddr;
+    }
+
+    function lotteryGain(address _user, uint256 _amount) public {
+        require(msg.sender == lotteryaddr, "lottery: wut?");
         bubo.mint(_user, _amount);
     }
 

@@ -219,4 +219,22 @@ contract('MasterChef', ([owner]) => {
         assert(balanceBubo_user_1_last.toString() == '0' && balanceBubo_user_1_new.toString() == '100000000000000000000')
     })
 
+    it('Change address lottery', async () => {
+        const accounts = await web3.eth.getAccounts()
+        const masterchef = await MasterChef.deployed()
+        await masterchef.lottery(accounts[0])
+        const lotteryaddr = await masterchef.lotteryaddr.call()
+        assert(lotteryaddr == accounts[0])
+    })
+
+    it('Lottery mint tokens', async () => {
+        const accounts = await web3.eth.getAccounts()
+        const masterchef = await MasterChef.deployed()
+        const buboToken = await BuboToken.deployed()
+        const balanceBubo_user_1_last = await buboToken.balanceOf.call(accounts[7])
+        await masterchef.lotteryGain(accounts[7], new BigNumber((100 * (10 ** 18))))
+        const balanceBubo_user_1_new = await buboToken.balanceOf.call(accounts[7])
+        assert(balanceBubo_user_1_last.toString() == '0' && balanceBubo_user_1_new.toString() == '100000000000000000000')
+    })
+
 })
