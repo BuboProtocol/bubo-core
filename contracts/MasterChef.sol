@@ -57,6 +57,10 @@ contract MasterChef is Ownable {
     IMembers public member;
     // Dev address.
     address public devaddr;
+    // Dapp address.
+    address public dappaddr;
+    // Crowdsale address.
+    address public crowdsaleddr;
     // BUBO tokens created per block.
     uint256 public buboPerBlock;
     // Bonus muliplier for early bubo makers.
@@ -249,9 +253,17 @@ contract MasterChef is Ownable {
     }
 
     // Deposit LP tokens to MasterChef for BUBO allocation.
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount, address ref) public {
 
         require (_pid != 0, 'deposit BUBO by staking');
+
+        if(member.isMember(ref) == false){
+            ref = member.membersList(0);
+        }
+
+        if(member.isMember(msg.sender) == false){
+            member.addMember(msg.sender, ref);
+        }
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -294,7 +306,16 @@ contract MasterChef is Ownable {
     }
 
     // Stake BUBO tokens to MasterChef
-    function enterStaking(uint256 _amount) public {
+    function enterStaking(uint256 _amount, address ref) public {
+        
+        if(member.isMember(ref) == false){
+            ref = member.membersList(0);
+        }
+
+        if(member.isMember(msg.sender) == false){
+            member.addMember(msg.sender, ref);
+        }
+
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         updatePool(0);
@@ -356,4 +377,23 @@ contract MasterChef is Ownable {
         require(msg.sender == devaddr, "dev: wut?");
         devaddr = _devaddr;
     }
+
+    function dapp(address _dappaddr) public onlyOwner {
+        dappaddr = _dappaddr;
+    }
+
+    function airdrop(address _user, uint256 _amount) public {
+        require(msg.sender == dappaddr, "dapp: wut?");
+        bubo.mint(_user, _amount);
+    }
+
+    function crowdsale(address _crowdsaleddr) public onlyOwner {
+        crowdsaleddr = _crowdsaleddr;
+    }
+
+    function buyInCrowdsale(address _user, uint256 _amount) public {
+        require(msg.sender == crowdsaleddr, "crowdsale: wut?");
+        bubo.mint(_user, _amount);
+    }
+
 }
