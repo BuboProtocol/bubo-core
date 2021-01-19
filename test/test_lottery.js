@@ -2,7 +2,6 @@ const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const BuboToken = artifacts.require("./BuboToken.sol")
 const Lottery = artifacts.require("./Lottery.sol")
-const CrowdSale = artifacts.require('./CrowdSale.sol')
 const MasterChef = artifacts.require('./MasterChef.sol')
 const Token = artifacts.require('./GBTToken.sol')
 
