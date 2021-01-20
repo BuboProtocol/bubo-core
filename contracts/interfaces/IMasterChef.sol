@@ -9,4 +9,12 @@ interface IMasterChef {
 
     function lotteryGain(address _user, uint256 _amount) external;
 
+    function buboLP() external view returns (address);
+
+    function gbtLP() external view returns (address);
+
+    function router() external view returns (address);
+
+    function devaddr() external view returns (address);
+
 }

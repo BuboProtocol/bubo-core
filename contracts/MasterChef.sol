@@ -10,6 +10,8 @@ import "./BuboToken.sol";
 import "./GBTToken.sol";
 import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IMembers.sol";
+import "./interfaces/IPancakeFactory.sol";
+
 
 
 
@@ -55,6 +57,16 @@ contract MasterChef is Ownable {
     GBTToken public gbt;
     // Members
     IMembers public member;
+    // Router address.
+    address public router;
+    // Factory address.
+    address public factory;
+    // WBNB address.
+    address public wbnb;
+    // LP Bubo address.
+    address public buboLP;
+    // LP GBT address.
+    address public gbtLP;
     // Dev address.
     address public devaddr;
     // Dapp address.
@@ -90,6 +102,9 @@ contract MasterChef is Ownable {
         BuboToken _bubo,
         GBTToken _gbt,
         IMembers _member,
+        address _router,
+        address _factory,
+        address _wbnb,
         address _devaddr,
         uint256 _buboPerBlock,
         uint256 _startBlock
@@ -100,6 +115,9 @@ contract MasterChef is Ownable {
         devaddr = _devaddr;
         buboPerBlock = _buboPerBlock;
         startBlock = _startBlock;
+        router = _router;
+        factory = _factory;
+        wbnb = _wbnb;
 
         // staking pool
         poolInfo.push(PoolInfo({
@@ -110,6 +128,22 @@ contract MasterChef is Ownable {
         }));
 
         totalAllocPoint = 1000;
+
+        if (IPancakeFactory(factory).getPair(address(bubo), _wbnb) == address(0)) {
+            IPancakeFactory(factory).createPair(address(bubo), _wbnb);
+            buboLP = IPancakeFactory(factory).getPair(address(bubo), _wbnb);
+            poolInfo.push(PoolInfo({
+                lpToken: IBEP20(buboLP),
+                allocPoint: 1000,
+                lastRewardBlock: startBlock,
+                accBuboPerShare: 0
+            }));
+        }
+
+        if (IPancakeFactory(factory).getPair(address(gbt), _wbnb) == address(0)) {
+            IPancakeFactory(factory).createPair(address(gbt), _wbnb);
+            gbtLP = IPancakeFactory(factory).getPair(address(gbt), _wbnb);
+        }
 
     }
 

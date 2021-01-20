@@ -7,7 +7,7 @@ module.exports = {
     development: {
       host: "127.0.0.1",
       port: 8545,
-      network_id: "*"
+      network_id: "997"
     },
     bsc_testnet: {
       provider: () => new HDWalletProvider(process.env.MNENOMIC, "https://data-seed-prebsc-1-s1.binance.org:8545"),

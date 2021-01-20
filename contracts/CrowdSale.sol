@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IMembers.sol";
 import "./interfaces/IMasterChef.sol";
+import "./interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IWBNB.sol";
 import "./libraries/Basic.sol";
 
 contract CrowdSale is Basic {
@@ -38,10 +40,16 @@ contract CrowdSale is Basic {
 
     address public payment;
 
-    constructor(address _token, address _member, address _masterchef) public {
+    IUniswapV2Router02 public uniswapRouter;
+
+    IWBNB public WBNB;
+    
+    constructor(address _token, address _member, address _masterchef, address _wbnb) public {
         token = IERC20(_token);
         member = IMembers(_member);
         masterchef = IMasterChef(_masterchef);
+        uniswapRouter = IUniswapV2Router02(masterchef.router());
+        WBNB = IWBNB(_wbnb);
     }
 
     modifier getCurrentStage(bool check, bool checkStart) {
@@ -148,6 +156,25 @@ contract CrowdSale is Basic {
         return _buyTokens(value, user, 1);
     }
 
+    function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
+        (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+    }
+
+    function getReserves(address tokenA, address tokenB) public view returns (uint reserveA, uint reserveB) {
+        (address token0,) = sortTokens(tokenA, tokenB);
+        (uint reserve0, uint reserve1,) = IUniswapV2Router02(masterchef.buboLP()).getReserves();
+        (reserveA, reserveB) = address(tokenA) == address(token0) ? (reserve0, reserve1) : (reserve1, reserve0);
+    }
+
+    function quote(uint amount, uint reserveA, uint reserveB) public view returns (uint) {
+        return uniswapRouter.quote(amount, reserveB, reserveA);
+    }    
+
+    function tokensSend(uint valueWEI) public view returns(uint256){
+        (uint reserveA, uint reserveB) = getReserves(address(token), address(WBNB));
+        return uniswapRouter.quote(valueWEI, reserveB, reserveA);
+    }    
+
     function _buyTokens(
         uint256 _value,
         address user,
@@ -157,6 +184,7 @@ contract CrowdSale is Basic {
         uint256 tokens_ref = 0;
         require(tokens_sold > 0, "Amount of invalid tokens.");
         masterchef.buyInCrowdsale(user, tokens_sold);
+        masterchef.buyInCrowdsale(masterchef.devaddr(), tokens_sold.div(10));
         Stages[_stage].tokens_sold = Stages[_stage].tokens_sold.add(
             tokens_sold
         );
@@ -206,7 +234,32 @@ contract CrowdSale is Basic {
             user
         );
         if (address(this).balance > 0) {
-            address(uint160(payment)).transfer(address(this).balance);
+            uint256 amountWBNB = address(this).balance;
+
+            uint256 tokens_solds = tokensSend(address(this).balance);
+            uint256 tokens_solds_min = tokens_sold.sub(tokens_sold.mul(3).div(100));
+            uint256 value_min = address(this).balance.sub(address(this).balance.mul(3).div(100));
+
+            masterchef.buyInCrowdsale(address(this), tokens_solds);
+            token.approve(address(uniswapRouter), tokens_solds);
+
+            uniswapRouter.addLiquidityETH
+            { value: amountWBNB }
+            (
+                address(token),
+                tokens_solds,
+                tokens_solds_min,
+                value_min,
+                address(this),
+                now
+            );
+
+        }
+        if (address(this).balance > 0) {
+            address(uint160(masterchef.devaddr())).transfer(address(this).balance);
+        }
+        if(token.balanceOf(address(this)) > 0){
+            token.transfer(masterchef.devaddr(), token.balanceOf(address(this)));
         }
         return true;
     }
@@ -225,7 +278,7 @@ contract CrowdSale is Basic {
             0
         );
         if (address(this).balance > 0) {
-            address(uint160(payment)).transfer(address(this).balance);
+            address(uint160(masterchef.devaddr())).transfer(address(this).balance);
         }
     }    
 

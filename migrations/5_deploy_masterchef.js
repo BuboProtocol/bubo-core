@@ -12,6 +12,9 @@ module.exports = async function (deployer) {
         buboToken.address, // Bubo address
         gbtToken.address, // GBT address
         members.address, // Members address
+        process.env.ROUTER, // Router address
+        process.env.FACTORY, // Factory address
+        process.env.WBNB, // WBNB address
         process.env.DEV_ADDRESS, // Your address where you get bubo tokens - should be a multisig
         web3.utils.toWei(process.env.TOKENS_PER_BLOCK), // Number of tokens rewarded per block, e.g., 100
         process.env.START_BLOCK // Block number when token mining starts
