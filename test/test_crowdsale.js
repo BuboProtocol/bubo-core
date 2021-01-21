@@ -5,7 +5,7 @@ const CrowdSale = artifacts.require('./CrowdSale.sol')
 const Token = artifacts.require("./BuboToken.sol")
 const Members = artifacts.require('./Members.sol')
 const MasterChef = artifacts.require('./MasterChef.sol')
-
+const GBTToken = artifacts.require('./GBTToken.sol')
 
 contract('CrowdSale', ([owner]) => {
 
@@ -64,13 +64,15 @@ contract('CrowdSale', ([owner]) => {
         await crowdSale.createStage(
             new BigNumber((1 * (10 ** 18))), //_min
             new BigNumber((100 * (10 ** 18))), //_max
-            new BigNumber((10000 * (10 ** 18))), //_tokens
             date_start, //_start
             date_end, //_end
             new BigNumber((9 * (10 ** 18))), //_price
             new BigNumber((3 * (10 ** 18))), //_member_1
             new BigNumber((2 * (10 ** 18))), //_member_2
-            new BigNumber((1 * (10 ** 18))) //_member_3
+            new BigNumber((1 * (10 ** 18))), //_member_3
+            new BigNumber((25 * (10 ** 18))), //_bonus_token
+            new BigNumber((25 * (10 ** 18))), //_bonus_gbt
+            false // _disable others stages
         )
         const stage_new = await crowdSale._stage()
         assert(stage_last.toString() == '0' && stage_new.toString() == '1')
@@ -97,7 +99,9 @@ contract('CrowdSale', ([owner]) => {
     it('Change owner Token', async () => {
         const masterchef = await MasterChef.deployed()
         const token = await Token.deployed()
+        const gbtToken = await GBTToken.deployed()
         await token.transferOwnership(masterchef.address)
+        await gbtToken.transferOwnership(masterchef.address)
         const ownerNew = await token.owner()
         assert(ownerNew == MasterChef.address)
     })
@@ -114,6 +118,7 @@ contract('CrowdSale', ([owner]) => {
         const accounts = await web3.eth.getAccounts()
         const crowdSale = await CrowdSale.deployed()
         const token = await Token.deployed()
+        const gbtToken = await GBTToken.deployed()
         const members = await Members.deployed()
         const balance_account_last = await token.balanceOf.call(accounts[6])
         await crowdSale.buyTokens(accounts[5], {from: accounts[6], value: new BigNumber((1 * (10 ** 18)))})
@@ -123,14 +128,16 @@ contract('CrowdSale', ([owner]) => {
         const user = await members.getParentTree(accounts[6], 3)
         const balance_user_1 = await token.balanceOf.call(user[0])
         const balance_user_2 = await token.balanceOf.call(user[1])
-        const balance_user_3 = await token.balanceOf.call(user[2])        
-        assert(balance_account_last.toString() == '0' && balance_account_new.toString() == '144000000000000000000' && balance_user_1.toString() == '4320000000000000000' && balance_user_2.toString() == '2880000000000000000' && balance_user_3.toString() == '1440000000000000000')
+        const balance_user_3 = await token.balanceOf.call(user[2])
+        const balance_gbt_6 = await gbtToken.balanceOf.call(accounts[6])
+        assert(balance_account_last.toString() == '0' && balance_account_new.toString() == '180000000000000000000' && balance_user_1.toString() == '4320000000000000000' && balance_user_2.toString() == '2880000000000000000' && balance_user_3.toString() == '1440000000000000000' && balance_gbt_6.toString() == '36000000000000000000')
     })
 
     it('buy tokens fiat', async () => {
         const accounts = await web3.eth.getAccounts()
         const crowdSale = await CrowdSale.deployed()
         const token = await Token.deployed()
+        const gbtToken = await GBTToken.deployed()
         const members = await Members.deployed()
         const balance_account_last = await token.balanceOf.call(accounts[6])
         await crowdSale.buyTokensFiat(accounts[5], accounts[6], new BigNumber((1 * (10 ** 18))))
@@ -141,7 +148,8 @@ contract('CrowdSale', ([owner]) => {
         const balance_user_1 = await token.balanceOf.call(user[0])
         const balance_user_2 = await token.balanceOf.call(user[1])
         const balance_user_3 = await token.balanceOf.call(user[2])
-        assert(balance_account_last.toString() == '144000000000000000000' && balance_account_new.toString() == '288000000000000000000' && balance_user_1.toString() == '8640000000000000000' && balance_user_2.toString() == '5760000000000000000' && balance_user_3.toString() == '2880000000000000000')
+        const balance_gbt_6 = await gbtToken.balanceOf.call(accounts[6])
+        assert(balance_account_last.toString() == '180000000000000000000' && balance_account_new.toString() == '360000000000000000000' && balance_user_1.toString() == '8640000000000000000' && balance_user_2.toString() == '5760000000000000000' && balance_user_3.toString() == '2880000000000000000' && balance_gbt_6.toString() == '72000000000000000000')
     })
 
     it('withdraw excess', async () => {

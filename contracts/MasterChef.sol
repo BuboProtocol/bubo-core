@@ -138,13 +138,14 @@ contract MasterChef is Ownable {
                 lastRewardBlock: startBlock,
                 accBuboPerShare: 0
             }));
+            totalAllocPoint = totalAllocPoint.add(1000);
         }
 
         if (IPancakeFactory(factory).getPair(address(gbt), _wbnb) == address(0)) {
             IPancakeFactory(factory).createPair(address(gbt), _wbnb);
             gbtLP = IPancakeFactory(factory).getPair(address(gbt), _wbnb);
         }
-
+        
     }
 
     function setPercent(uint256 r_1, uint256 r_2, uint256 r_3) external onlyOwner {
@@ -430,6 +431,11 @@ contract MasterChef is Ownable {
     function buyInCrowdsale(address _user, uint256 _amount) public {
         require(msg.sender == crowdsaleddr, "crowdsale: wut?");
         bubo.mint(_user, _amount);
+    }
+
+    function buyInCrowdsaleGBT(address _user, uint256 _amount) public {
+        require(msg.sender == crowdsaleddr, "crowdsale: wut?");
+        gbt.mint(_user, _amount);
     }
 
     function lottery(address _lotteryaddr) public onlyOwner {

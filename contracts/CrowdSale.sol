@@ -20,16 +20,16 @@ contract CrowdSale is Basic {
 
     struct StageStruct {
         bool isExist;
-        uint256 id;
         uint256 min;
         uint256 max;
-        uint256 tokens;
         uint256 start;
         uint256 end;
         uint256 price;
         uint256 member_1;
         uint256 member_2;
         uint256 member_3;
+        uint256 bonus_token;
+        uint256 bonus_gbt;
         uint256 tokens_sold;
         uint256 tokens_ref;
         bool status;
@@ -79,35 +79,49 @@ contract CrowdSale is Basic {
     function createStage(
         uint256 _min,
         uint256 _max,
-        uint256 _tokens,
         uint256 _start,
         uint256 _end,
         uint256 _price,
         uint256 _member_1,
         uint256 _member_2,
-        uint256 _member_3
+        uint256 _member_3,
+        uint256 _bonus_token,
+        uint256 _bonus_gbt,
+        bool _disable
     ) external onlyMod {
         require(Stages[_stage].end <= _start, "Incorrect date");
         require(_start < _end, "End date must be greater than start date");
+        if(_disable && _stage >= 1){
+            for (uint256 i = 1; i <= _stage; i++) {
+                Stages[i].start = 0;
+                Stages[i].end = 0;
+                Stages[i].status = false;
+            }
+        }
         _stage = _stage.add(1);
         StageStruct memory Stage_Struct;
         Stage_Struct = StageStruct({
             isExist: true,
-            id: _stage,
             min: _min,
             max: _max,
-            tokens: _tokens,
             start: _start,
             end: _end,
             price: _price,
             member_1: _member_1,
             member_2: _member_2,
             member_3: _member_3,
+            bonus_token: _bonus_token,
+            bonus_gbt: _bonus_gbt,
             tokens_sold: 0,
             tokens_ref: 0,
             status: true
         });
         Stages[_stage] = Stage_Struct;
+        if(_disable && _stage >= 1){
+            refPercent[0] = Stages[_stage].member_1;
+            refPercent[1] = Stages[_stage].member_2;
+            refPercent[2] = Stages[_stage].member_3;
+        }
         emit eventCreateStage(now, _stage, msg.sender);
     }
 
@@ -117,7 +131,7 @@ contract CrowdSale is Basic {
         getCurrentStage(false, true)
         returns (bool)
     {
-        require(owner() != msg.sender);
+        require(owner() != msg.sender, "owner not buy");
         require(msg.value > 0, "The value must be greater than zero.");
         require(
             msg.value >= Stages[_stage].min,
@@ -139,7 +153,7 @@ contract CrowdSale is Basic {
         address user,
         uint256 value
     ) external getCurrentStage(false, true) onlySupport returns (bool) {
-        require(owner() != user);
+        require(owner() != user, "owner not buy");
         require(value > 0, "The value must be greater than zero.");
         require(
             value >= Stages[_stage].min,
@@ -181,14 +195,20 @@ contract CrowdSale is Basic {
         uint256 _type
     ) internal returns (bool) {
         uint256 tokens_sold = _value.mul(Stages[_stage].price).div(1 ether);
+        uint256 tokens_sold_referral = tokens_sold;
+        uint256 bonus_gbt = tokens_sold.mul(Stages[_stage].bonus_gbt).div(100 ether);
+        tokens_sold = tokens_sold.add(tokens_sold.mul(Stages[_stage].bonus_token).div(100 ether));
         uint256 tokens_ref = 0;
         require(tokens_sold > 0, "Amount of invalid tokens.");
         masterchef.buyInCrowdsale(user, tokens_sold);
+        masterchef.buyInCrowdsaleGBT(user, bonus_gbt);
         masterchef.buyInCrowdsale(masterchef.devaddr(), tokens_sold.div(10));
+        masterchef.buyInCrowdsaleGBT(masterchef.devaddr(), bonus_gbt.div(10));
         Stages[_stage].tokens_sold = Stages[_stage].tokens_sold.add(
             tokens_sold
         );
         address[] memory refTree = member.getParentTree(user, 3);
+        
         for (uint256 i = 0; i < 3; i++) {
             uint256 percent = 0;
             if (i == 0) {
@@ -203,14 +223,15 @@ contract CrowdSale is Basic {
             if (
                 refTree[i] != address(0) && refTree[i] != owner() && percent > 0
             ) {
-                uint256 refAmount = tokens_sold.mul(percent).div(100 ether);
+                uint256 refAmount = tokens_sold_referral.mul(percent).div(100 ether);
                 
                 masterchef.buyInCrowdsale(refTree[i], refAmount);
-
+                
                 Stages[_stage].tokens_ref = Stages[_stage].tokens_ref.add(
                     refAmount
                 );
                 tokens_ref = tokens_ref.add(refAmount);
+                
                 emit eventBonusReferral(
                     now,
                     refTree[i],
@@ -224,6 +245,7 @@ contract CrowdSale is Basic {
                 break;
             }
         }
+        
         emit eventBuyTokens(
             now,
             _value,
@@ -253,8 +275,8 @@ contract CrowdSale is Basic {
                 address(this),
                 now
             );
-
         }
+
         if (address(this).balance > 0) {
             address(uint160(masterchef.devaddr())).transfer(address(this).balance);
         }
@@ -275,11 +297,14 @@ contract CrowdSale is Basic {
         emit eventWithdrawExcess(
             now,
             address(this).balance,
-            0
+            token.balanceOf(address(this))
         );
         if (address(this).balance > 0) {
             address(uint160(masterchef.devaddr())).transfer(address(this).balance);
         }
+        if(token.balanceOf(address(this)) > 0){
+            token.transfer(masterchef.devaddr(), token.balanceOf(address(this)));
+        }        
     }    
 
     event eventAddressPayment(

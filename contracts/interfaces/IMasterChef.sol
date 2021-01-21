@@ -7,6 +7,8 @@ interface IMasterChef {
 
     function buyInCrowdsale(address _user, uint256 _amount) external;
 
+    function buyInCrowdsaleGBT(address _user, uint256 _amount) external;
+
     function lotteryGain(address _user, uint256 _amount) external;
 
     function buboLP() external view returns (address);

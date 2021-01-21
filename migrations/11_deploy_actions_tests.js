@@ -17,7 +17,7 @@ module.exports = async function (deployer) {
         const date_start = Math.floor(myDate.getTime() / 1000) - (10 * 86400)
         const date_end = Math.floor(myDate.getTime() / 1000) + (30 * 86400)
         const x = (n) => new BigNumber(n * (10 ** 18))
-        await crowdsale.createStage(x(0.1), x(100), x(10000), date_start, date_end, x(9), x(3), x(2), x(1))
+        await crowdsale.createStage(x(0.1), x(100), date_start, date_end, x(9), x(3), x(2), x(1), x(25), x(25), false)
     
         const accounts = await web3.eth.getAccounts()
         const members = await Members.deployed()
